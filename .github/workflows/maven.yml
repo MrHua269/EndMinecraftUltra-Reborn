@@ -12,7 +12,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-
+    - name: get the libraries
+      run: wget https://ci.opencollab.dev//job/GeyserMC/job/Geyser/job/master/lastSuccessfulBuild/artifact/bootstrap/standalone/target/Geyser.jar && mkdir Libs && mv Geyser.jar Libs/
     - name: Set up JDK 8
       uses: actions/setup-java@v1
       with:
@@ -22,5 +23,5 @@ jobs:
 
     - uses: actions/upload-artifact@v2
       with:
-        name: EndMinecraftUltra-1.16.4
-        path: target/EndMinecraftUltra-1.16.4.jar
+        name: EndMinecraftUltra-1.18.2
+        path: target/*.jar
