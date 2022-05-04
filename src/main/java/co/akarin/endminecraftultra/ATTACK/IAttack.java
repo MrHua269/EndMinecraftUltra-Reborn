@@ -3,7 +3,6 @@ package co.akarin.endminecraftultra.ATTACK;
 import java.util.HashMap;
 
 public abstract class IAttack {
-    public int attack_mode;
     public int attack_time;
     public int attack_maxconnect;
     public int attack_joinsleep;

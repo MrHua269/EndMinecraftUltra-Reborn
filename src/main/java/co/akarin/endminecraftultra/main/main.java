@@ -20,7 +20,7 @@ public class main {
     private static Scanner scanner = new Scanner(System.in);
 
 
-    public static void main(String[] args) throws InterruptedException, IOException, IllegalAccessException, InstantiationException, NoSuchFieldException, NoSuchMethodException, InvocationTargetException, ClassNotFoundException, NamingException {
+    public static void main(String[] args) throws InterruptedException, IOException, NoSuchFieldException, NoSuchMethodException, InvocationTargetException, ClassNotFoundException, NamingException {
         getInfo();
         showMenu();
     }

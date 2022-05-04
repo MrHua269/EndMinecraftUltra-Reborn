@@ -33,7 +33,7 @@ public class Menu {
     }
     public void antiAttiackMode(){
         getProxy();
-        IAttack attack = new DistributedBotAttack(Integer.MAX_VALUE,Integer.MAX_VALUE,650,true,true,true,new HashMap<String,String>());
+        IAttack attack = new DistributedBotAttack(Integer.MAX_VALUE,Integer.MAX_VALUE,650,true,true,true, new HashMap<>(),true);
         attack.start(ip, port);
     }
     public void _2() {
@@ -57,8 +57,10 @@ public class Menu {
         boolean lele = getCo(scanner.nextLine(),"n").equals("y");
         log("Enable packet flood? y/n,default(n)");
         boolean packet = getCo(scanner.nextLine(),"n").equals("y");
+        log("Enable antiAntiBot mode? y/n,default(y)");
+        boolean antiAntiBot = getCo(scanner.nextLine(),"y").equals("y");
         getProxy();
-        IAttack attack = new DistributedBotAttack(time,maxAttack,sleepTime,lele,tab,packet,new HashMap<String,String>());
+        IAttack attack = new DistributedBotAttack(time,maxAttack,sleepTime,lele,tab,packet, new HashMap<>(),antiAntiBot);
         attack.start(ip, port);
     }
     public void getProxy() {
