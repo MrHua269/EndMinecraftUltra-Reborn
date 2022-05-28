@@ -188,12 +188,13 @@ public class DistributedBotAttack extends IAttack{
                 }else{
                     msg=e.getReason();
                 }
+                mainUtils.log("Client","[断开连接]["+username+"] " +msg);
                 //wangxyper --start --Use the antiAntiBot mode
                 if (antiAntiBotMode) {
                     connectCountDown.decrementAndGet();
                     if (connectCountDown.get() >= 0) {
                         try {
-                            Thread.sleep(500);
+                            Thread.sleep(10000);
                         } catch (InterruptedException e1) {
                             e1.printStackTrace();
 
@@ -204,7 +205,6 @@ public class DistributedBotAttack extends IAttack{
                     }
                 }
                 //wangxyper --end
-                mainUtils.log("Client","[断开连接]["+username+"] " +msg);
             }
         });
         return client;
