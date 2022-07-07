@@ -26,7 +26,7 @@ public class main {
     }
 
     private static void getInfo() throws NamingException {
-        log("欢迎使用EndMinecraftUltra压测工具 协议库版本:1.18.1", "",  "=======================");
+        log("欢迎使用EndMinecraftUltra压测工具 协议库版本:1.19", "",  "=======================");
         log("请输入服务器IP/域名地址");
         ip = scanner.nextLine();
         if (ip.contains(":")) {
