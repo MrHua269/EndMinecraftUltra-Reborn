@@ -51,7 +51,7 @@
             <artifactId> Geyser </artifactId>
             <version>1.18.2</version>
             <scope>system</scope>
-            <systemPath>${pom.basedir}\Libs\Geyser.jar</systemPath>
+	    <systemPath>${pom.basedir}/Libs/Geyser.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>io.netty</groupId>
