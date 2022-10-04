@@ -6,4 +6,5 @@ EndMinecraftUltra 1.17-1.18.2，使用改工具攻击服务器造成的责任均
 ### 快速构建
 终端运行 bash setupAndBuild.sh
 
-
+### 警告
+该项目已不被维护
