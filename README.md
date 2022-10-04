@@ -7,4 +7,4 @@ EndMinecraftUltra的1.19分支，使用改工具攻击服务器造成的责任�
 终端运行 bash setupAndBuild.sh
 
 ### 警告
-该分支暂未重构完成(mojang的屑聊天签名机制
+该项目已不被维护
