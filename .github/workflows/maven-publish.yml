@@ -18,8 +18,6 @@ jobs:
         java-version: 8
     - name: Build with Maven
       run: mvn clean package
-    - name: get the libraries
-      run: wget https://ci.opencollab.dev/job/GeyserMC/job/Geyser/job/master/lastSuccessfulBuild/artifact/bootstrap/standalone/build/libs/Geyser-Standalone.jar && mv Geyser-Standalone.jar Geyser.jar && mkdir Libs && mv Geyser.jar Libs/
     - name: capture build artifacts
       uses: actions/upload-artifact@v2
       with:
